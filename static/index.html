@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inclusive - Test Client</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  h2 { margin-top: 2em; }
+  video, #snapshotPreview { border: 1px solid #ccc; border-radius: 8px; }
+  #result { margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px; white-space: pre-wrap; }
+  button { padding: 8px 16px; margin: 8px 0; cursor: pointer; }
+  #status { color: #666; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h1>Inclusive - ASL Recognition Test Client</h1>
+<p>API base URL: <code id="apiBase">http://localhost:8000</code></p>
+
+<h2>1. Upload a video clip</h2>
+<input type="file" id="videoFile" accept="video/*">
+<button onclick="predictVideo()">Predict</button>
+
+<h2>2. Live webcam scan</h2>
+<video id="webcam" width="320" height="240" autoplay muted></video><br>
+<button onclick="startCapture()">Start 3-second capture</button>
+<div id="status"></div>
+
+<h2>Result</h2>
+<div id="result">(no prediction yet)</div>
+<audio id="audioPlayer" controls style="margin-top: 12px; width: 100%; display: none;"></audio>
+
+<script>
+const API_BASE = document.getElementById('apiBase').textContent;
+
+function showResult(data) {
+  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+  if (data.audio_base64) {
+    const audio = document.getElementById('audioPlayer');
+    audio.src = 'data:audio/' + data.audio_format + ';base64,' + data.audio_base64;
+    audio.style.display = 'block';
+    audio.play();
+  }
+}
+
+async function predictVideo() {
+  const fileInput = document.getElementById('videoFile');
+  if (!fileInput.files.length) { alert('Choose a video file first.'); return; }
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  document.getElementById('result').textContent = 'Predicting...';
+  const resp = await fetch(API_BASE + '/predict/video', { method: 'POST', body: formData });
+  const data = await resp.json();
+  showResult(data);
+}
+
+// --- Live webcam capture ---
+// Captures a snapshot every ~150ms for 3 seconds (~20 frames), then POSTs
+// all of them to /predict/frames in one request. This deliberately avoids
+// WebSocket streaming -- batching a short burst of snapshots is simpler on
+// both ends and matches how the model was trained (on short, complete
+// clips), per the API's design notes in app/main.py.
+let stream = null;
+
+async function initWebcam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('webcam').srcObject = stream;
+  } catch (e) {
+    document.getElementById('status').textContent = 'Webcam access denied or unavailable: ' + e;
+  }
+}
+initWebcam();
+
+async function startCapture() {
+  if (!stream) { alert('Webcam not available.'); return; }
+  const video = document.getElementById('webcam');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 320;
+  canvas.height = video.videoHeight || 240;
+  const ctx = canvas.getContext('2d');
+
+  const blobs = [];
+  const captureIntervalMs = 150;
+  const totalDurationMs = 3000;
+  const numCaptures = Math.floor(totalDurationMs / captureIntervalMs);
+
+  document.getElementById('status').textContent = 'Capturing...';
+
+  for (let i = 0; i < numCaptures; i++) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    blobs.push(blob);
+    await new Promise(r => setTimeout(r, captureIntervalMs));
+  }
+
+  document.getElementById('status').textContent = `Captured ${blobs.length} frames, sending...`;
+
+  const formData = new FormData();
+  blobs.forEach((blob, i) => formData.append('files', blob, `frame_${i}.jpg`));
+
+  const resp = await fetch(API_BASE + '/predict/frames', { method: 'POST', body: formData });
+  const data = await resp.json();
+  showResult(data);
+  document.getElementById('status').textContent = 'Done.';
+}
+</script>
+
+</body>
+</html>
