@@ -1,112 +1,514 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Inclusive - Test Client</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
-  h2 { margin-top: 2em; }
-  video, #snapshotPreview { border: 1px solid #ccc; border-radius: 8px; }
-  #result { margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px; white-space: pre-wrap; }
-  button { padding: 8px 16px; margin: 8px 0; cursor: pointer; }
-  #status { color: #666; font-size: 0.9em; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inclusive ASL Test Client</title>
+  <style>
+    :root {
+      --bg: #08131d;
+      --bg-elevated: #0f1d2a;
+      --panel: rgba(16, 28, 38, 0.82);
+      --panel-border: rgba(148, 163, 184, 0.2);
+      --text: #ecf3ff;
+      --muted: #9bb1c7;
+      --primary: #49c0ff;
+      --primary-strong: #0ea5e9;
+      --success: #34d399;
+      --warning: #f59e0b;
+      --danger: #f87171;
+      --shadow: 0 22px 40px rgba(2, 6, 23, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(73, 192, 255, 0.22), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(52, 211, 153, 0.18), transparent 30%),
+        var(--bg);
+      padding: 32px 18px 48px;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.1;
+    }
+
+    .api-pill {
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(73, 192, 255, 0.3);
+      color: var(--primary);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 22px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      padding: 22px;
+    }
+
+    .panel-title {
+      margin: 0 0 16px;
+      font-size: 1.15rem;
+      color: var(--text);
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .upload-row, .actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    input[type="file"] {
+      width: min(100%, 260px);
+      color: var(--muted);
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: rgba(15, 29, 42, 0.8);
+      padding: 10px 12px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+      color: #07131d;
+      font-weight: 800;
+      padding: 12px 18px;
+      cursor: pointer;
+      box-shadow: 0 18px 28px rgba(14, 165, 233, 0.28);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button.secondary {
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      box-shadow: none;
+    }
+
+    .camera-box {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #020817;
+      border: 1px solid var(--panel-border);
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: linear-gradient(180deg, #0b1320, #020817);
+    }
+
+    .camera-placeholder {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .status {
+      min-height: 24px;
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    .status.error { color: var(--danger); }
+    .status.success { color: var(--success); }
+    .status.warn { color: var(--warning); }
+
+    .result-wrap {
+      display: grid;
+      gap: 14px;
+    }
+
+    .result-block {
+      background: rgba(8, 19, 29, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 14px;
+      padding: 18px;
+      min-height: 140px;
+      white-space: pre-wrap;
+      overflow: auto;
+      color: var(--text);
+    }
+
+    .result-top {
+      font-size: clamp(1.8rem, 4vw, 2.7rem);
+      font-weight: 800;
+      text-transform: capitalize;
+      letter-spacing: -0.04em;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .confidence {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 8px;
+    }
+
+    .confidence strong { color: var(--text); }
+
+    .predictions-list {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .predictions-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 10px;
+      background: rgba(15, 29, 42, 0.78);
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      font-size: 0.94rem;
+      color: var(--muted);
+      text-transform: capitalize;
+    }
+
+    .predictions-list span:first-child { color: var(--text); }
+
+    audio {
+      width: 100%;
+      margin-top: 8px;
+      display: none;
+    }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      .header { align-items: flex-start; }
+    }
+  </style>
 </head>
 <body>
+  <div class="page">
+    <header class="header">
+      <div>
+        <span class="eyebrow">Sign Recognition</span>
+        <h1>Inclusive ASL Test Client</h1>
+      </div>
+      <div class="api-pill">API: <span id="apiBase">http://localhost:8000</span></div>
+    </header>
 
-<h1>Inclusive - ASL Recognition Test Client</h1>
-<p>API base URL: <code id="apiBase">http://localhost:8000</code></p>
+    <main class="grid">
+      <section class="card stack">
+        <div>
+          <h2 class="panel-title">1. Upload a video clip</h2>
+          <div class="upload-row">
+            <input type="file" id="videoFile" accept="video/*">
+            <button onclick="predictVideo()">Predict</button>
+          </div>
+        </div>
 
-<h2>1. Upload a video clip</h2>
-<input type="file" id="videoFile" accept="video/*">
-<button onclick="predictVideo()">Predict</button>
+        <div>
+          <h2 class="panel-title">2. Live webcam scan</h2>
+          <div class="camera-box">
+            <video id="webcam" autoplay playsinline muted></video>
+            <div class="camera-placeholder" id="cameraPlaceholder">Camera is warming up…</div>
+          </div>
+          <div class="actions" style="margin-top: 14px;">
+            <button onclick="startCapture()">Start 3-second capture</button>
+            <button class="secondary" onclick="initWebcam()">Enable camera</button>
+          </div>
+          <div id="status" class="status">Waiting for permission…</div>
+        </div>
+      </section>
 
-<h2>2. Live webcam scan</h2>
-<video id="webcam" width="320" height="240" autoplay muted></video><br>
-<button onclick="startCapture()">Start 3-second capture</button>
-<div id="status"></div>
+      <section class="card result-wrap">
+        <div>
+          <h2 class="panel-title">Result</h2>
+          <div id="result" class="result-block">No prediction yet.</div>
+          <audio id="audioPlayer" controls></audio>
+        </div>
+      </section>
+    </main>
+  </div>
 
-<h2>Result</h2>
-<div id="result">(no prediction yet)</div>
-<audio id="audioPlayer" controls style="margin-top: 12px; width: 100%; display: none;"></audio>
+  <script>
+    const API_BASE = document.getElementById('apiBase').textContent.trim();
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    const webcamEl = document.getElementById('webcam');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+    const audioEl = document.getElementById('audioPlayer');
 
-<script>
-const API_BASE = document.getElementById('apiBase').textContent;
+    let stream = null;
 
-function showResult(data) {
-  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
-  if (data.audio_base64) {
-    const audio = document.getElementById('audioPlayer');
-    audio.src = 'data:audio/' + data.audio_format + ';base64,' + data.audio_base64;
-    audio.style.display = 'block';
-    audio.play();
-  }
-}
+    function setStatus(message, kind = 'default') {
+      statusEl.textContent = message;
+      statusEl.className = 'status';
+      if (kind === 'error') statusEl.classList.add('error');
+      if (kind === 'success') statusEl.classList.add('success');
+      if (kind === 'warn') statusEl.classList.add('warn');
+    }
 
-async function predictVideo() {
-  const fileInput = document.getElementById('videoFile');
-  if (!fileInput.files.length) { alert('Choose a video file first.'); return; }
+    function renderResult(data) {
+      if (!data || !data.top1_word) {
+        resultEl.innerHTML = 'No prediction yet.';
+        return;
+      }
 
-  const formData = new FormData();
-  formData.append('file', fileInput.files[0]);
+      const topPrediction = data.predictions && data.predictions.length ? data.predictions[0] : null;
+      const detail = data.predictions || [];
+      const predictionList = detail
+        .map((item, index) => {
+          const label = item.word || 'unknown';
+          const conf = Number(item.confidence || 0).toFixed(3);
+          return `<li><span>${index + 1}. ${label}</span><strong>${conf}</strong></li>`;
+        })
+        .join('');
 
-  document.getElementById('result').textContent = 'Predicting...';
-  const resp = await fetch(API_BASE + '/predict/video', { method: 'POST', body: formData });
-  const data = await resp.json();
-  showResult(data);
-}
+      resultEl.innerHTML = `
+        <div class="result-top">${data.top1_word}</div>
+        <div class="confidence"><span>Confidence</span><strong>${Number(data.top1_confidence || 0).toFixed(3)}</strong></div>
+        <div class="confidence"><span>Low confidence</span><strong>${data.low_confidence ? 'Yes' : 'No'}</strong></div>
+        <ul class="predictions-list">${predictionList}</ul>
+      `;
+    }
 
-// --- Live webcam capture ---
-// Captures a snapshot every ~150ms for 3 seconds (~20 frames), then POSTs
-// all of them to /predict/frames in one request. This deliberately avoids
-// WebSocket streaming -- batching a short burst of snapshots is simpler on
-// both ends and matches how the model was trained (on short, complete
-// clips), per the API's design notes in app/main.py.
-let stream = null;
+    async function speakText(text) {
+      if (!text) return;
+      const encoded = encodeURIComponent(text);
+      try {
+        const response = await fetch(`${API_BASE}/speak?word=${encoded}`, { method: 'GET' });
+        if (!response.ok) throw new Error(`Speech request failed: ${response.status}`);
+        const payload = await response.json();
+        if (payload.audio_base64) {
+          audioEl.src = `data:audio/${payload.audio_format || 'wav'};base64,${payload.audio_base64}`;
+          audioEl.style.display = 'block';
+          await audioEl.play();
+          return;
+        }
+      } catch (error) {
+        console.warn('Speech GET fallback failed:', error);
+      }
 
-async function initWebcam() {
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    document.getElementById('webcam').srcObject = stream;
-  } catch (e) {
-    document.getElementById('status').textContent = 'Webcam access denied or unavailable: ' + e;
-  }
-}
-initWebcam();
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.1;
+        utterance.pitch = 1.1;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      }
+    }
 
-async function startCapture() {
-  if (!stream) { alert('Webcam not available.'); return; }
-  const video = document.getElementById('webcam');
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 320;
-  canvas.height = video.videoHeight || 240;
-  const ctx = canvas.getContext('2d');
+    async function playResponseAudio(data) {
+      if (!data) return;
+      if (data.audio_base64) {
+        try {
+          audioEl.src = `data:audio/${data.audio_format || 'wav'};base64,${data.audio_base64}`;
+          audioEl.style.display = 'block';
+          await audioEl.play();
+          return;
+        } catch (error) {
+          console.warn('Audio playback failed, falling back to browser speech:', error);
+        }
+      }
 
-  const blobs = [];
-  const captureIntervalMs = 150;
-  const totalDurationMs = 3000;
-  const numCaptures = Math.floor(totalDurationMs / captureIntervalMs);
+      if (data.top1_word) {
+        await speakText(data.top1_word);
+      }
+    }
 
-  document.getElementById('status').textContent = 'Capturing...';
+    function showResult(data) {
+      renderResult(data);
+      playResponseAudio(data);
+    }
 
-  for (let i = 0; i < numCaptures; i++) {
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-    blobs.push(blob);
-    await new Promise(r => setTimeout(r, captureIntervalMs));
-  }
+    async function predictVideo() {
+      const fileInput = document.getElementById('videoFile');
+      if (!fileInput.files.length) {
+        setStatus('Choose a video file first.', 'warn');
+        return;
+      }
 
-  document.getElementById('status').textContent = `Captured ${blobs.length} frames, sending...`;
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
 
-  const formData = new FormData();
-  blobs.forEach((blob, i) => formData.append('files', blob, `frame_${i}.jpg`));
+      resultEl.textContent = 'Predicting…';
+      setStatus('Analyzing your video clip…', 'default');
 
-  const resp = await fetch(API_BASE + '/predict/frames', { method: 'POST', body: formData });
-  const data = await resp.json();
-  showResult(data);
-  document.getElementById('status').textContent = 'Done.';
-}
-</script>
+      try {
+        const resp = await fetch(`${API_BASE}/predict/video`, { method: 'POST', body: formData });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || `Request failed (${resp.status})`);
+        }
+        const data = await resp.json();
+        showResult(data);
+        setStatus('Prediction complete.', 'success');
+      } catch (error) {
+        console.error(error);
+        setStatus(`Prediction failed: ${error.message}`, 'error');
+      }
+    }
 
+    async function initWebcam() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus('This browser does not support webcam access.', 'error');
+        cameraPlaceholder.textContent = 'Webcam not supported on this browser.';
+        return;
+      }
+
+      try {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+
+        webcamEl.srcObject = stream;
+        webcamEl.onloadedmetadata = () => {
+          cameraPlaceholder.style.display = 'none';
+          webcamEl.play().catch(() => {});
+          setStatus('Camera ready.', 'success');
+        };
+      } catch (error) {
+        cameraPlaceholder.textContent = 'Camera permission denied. Please allow access and retry.';
+        setStatus(`Webcam access denied or unavailable: ${error.message}`, 'error');
+      }
+    }
+
+    async function startCapture() {
+      if (!stream) {
+        await initWebcam();
+      }
+
+      if (!stream) {
+        setStatus('Webcam is not available right now.', 'error');
+        return;
+      }
+
+      const video = document.getElementById('webcam');
+      if (video.readyState < 2) {
+        await new Promise(resolve => {
+          video.onloadeddata = resolve;
+          video.play().catch(() => {});
+        });
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      const ctx = canvas.getContext('2d');
+
+      const blobs = [];
+      const captureIntervalMs = 150;
+      const totalDurationMs = 3000;
+      const numCaptures = Math.floor(totalDurationMs / captureIntervalMs);
+
+      setStatus('Capturing 3 seconds of frames…', 'default');
+
+      for (let i = 0; i < numCaptures; i++) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+        if (blob) {
+          blobs.push(blob);
+        }
+        await new Promise(resolve => setTimeout(resolve, captureIntervalMs));
+      }
+
+      if (!blobs.length) {
+        setStatus('No frames were captured. Please retry.', 'error');
+        return;
+      }
+
+      setStatus(`Captured ${blobs.length} frames, sending to the model…`, 'default');
+
+      try {
+        const formData = new FormData();
+        blobs.forEach((blob, index) => formData.append('files', blob, `frame_${index}.jpg`));
+
+        const resp = await fetch(`${API_BASE}/predict/frames`, { method: 'POST', body: formData });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(text || `Request failed (${resp.status})`);
+        }
+
+        const data = await resp.json();
+        showResult(data);
+        setStatus('Capture complete.', 'success');
+      } catch (error) {
+        console.error(error);
+        setStatus(`Capture failed: ${error.message}`, 'error');
+      }
+    }
+
+    initWebcam();
+  </script>
 </body>
 </html>

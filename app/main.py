@@ -31,6 +31,7 @@ import cv2
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config
@@ -57,6 +58,11 @@ app.add_middleware(
 )
 
 app.mount("/test-client", StaticFiles(directory="static", html=True), name="test-client")
+
+
+@app.get("/")
+def root_redirect():
+    return RedirectResponse(url="/test-client")
 
 
 def _build_predict_response(ranked) -> PredictResponse:
@@ -143,10 +149,18 @@ async def predict_frames(files: list[UploadFile] = File(...)):
     return _build_predict_response(ranked)
 
 
+@app.get("/speak")
 @app.post("/speak")
 def speak(word: str):
     """Standalone TTS endpoint -- synthesize any word/phrase directly,
-    independent of a prediction (useful for testing the TTS path alone)."""
+    independent of a prediction (useful for testing the TTS path alone).
+
+    Accepts both GET and POST so browser clients and quick smoke tests can
+    request speech without getting a method mismatch.
+    """
+    if not word or not word.strip():
+        raise HTTPException(422, "A non-empty 'word' is required.")
+
     try:
         audio_bytes = synthesize_to_wav_bytes(word)
     except Exception as e:
